@@ -190,9 +190,16 @@ class ClimateApp:
                 self.file_name = file.name
         else:
             self.file, self.file_name = None, None
-            sample = [{'Name': 'Mustername', 'Station': 'Musterstation', 'Land': 'Musterland', 'Höhe': '0', 'Lage': 'Muster°N/Lage°O',
-                    'Temperaturen': [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 32.0, 16.0, 8.0, 4.0, 2.0, 1.0],
-                    'Niederschläge': [320.0, 160.0, 80.0, 40.0, 20.0, 10.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0]}]
+            sample = [
+                {'Name': 'Musterdatensatz',
+                 'Station': 'New York City',
+                 'Land': 'USA',
+                 'Höhe': '20',
+                 'Lage': '40°N/74°W',
+                 'Temperaturen': [-1.0, 0.0, 4.1, 10.4, 16.0, 21.3, 24.5, 23.6, 20.1, 13.7, 7.7, 2.5],
+                 'Niederschläge': [86, 78, 106, 92, 92, 103, 105, 106, 95, 97, 76, 103]
+                }
+            ]
             
             st.info("Keine Datei? Musterdatei **herunterladen** und oben **einfügen**:")
             st.download_button(label=f'Musterdatei herunterladen', data=json.dumps(sample, indent=2, ensure_ascii=False), file_name='Klimadaten.json', mime='application/json', key='1')
