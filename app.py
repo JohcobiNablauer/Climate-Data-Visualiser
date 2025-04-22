@@ -7,13 +7,10 @@ import copy
 
 class ClimateApp:
     def __init__(self):
-        self.file, self.file_name = None, None
-        self.entry = None
-
-        self.months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+        self.file, self.file_name, self.entry, self.id = None, None, None, None
+        self.AVG_TEMP, self. SUM_PRECIP, self.N_LABELS, self.P_LABELS = None, None, [], []
         
-        self.AVG_TEMP, self. SUM_PRECIP = None, None
-        self.N_LABELS, self.P_LABELS = [], []
+        self.months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
         self.T_COL, self.P_COL = '#d73027', ['#5e93d1', '#4363aa']
 
         self.decorations = {
@@ -193,16 +190,9 @@ class ClimateApp:
                 self.file_name = file.name
         else:
             self.file, self.file_name = None, None
-            sample = [
-                {'Name': 'Musterdatensatz',
-                 'Station': 'New York City',
-                 'Land': 'USA',
-                 'Höhe': '20',
-                 'Lage': '40°N/74°W',
-                 'Temperaturen': [-1.0, 0.0, 4.1, 10.4, 16.0, 21.3, 24.5, 23.6, 20.1, 13.7, 7.7, 2.5],
-                 'Niederschläge': [86, 78, 106, 92, 92, 103, 105, 106, 95, 97, 76, 103]
-                }
-            ]
+            sample = [{'Name': 'Mustername', 'Station': 'Musterstation', 'Land': 'Musterland', 'Höhe': '0', 'Lage': 'Muster°N/Lage°O',
+                    'Temperaturen': [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 32.0, 16.0, 8.0, 4.0, 2.0, 1.0],
+                    'Niederschläge': [320.0, 160.0, 80.0, 40.0, 20.0, 10.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0]}]
             
             st.info("Keine Datei? Musterdatei **herunterladen** und oben **einfügen**:")
             st.download_button(label=f'Musterdatei herunterladen', data=json.dumps(sample, indent=2, ensure_ascii=False), file_name='Klimadaten.json', mime='application/json', key='1')
@@ -227,7 +217,11 @@ class ClimateApp:
             if sel_action == 'Datensatz laden':
                 sel_name = st.selectbox('Wählen Sie einen Datensatz:', [entry['Name'] for entry in self.file], index=st.session_state.name if 'name' in st.session_state else None)
                 if sel_name:
-                    self.entry = copy.deepcopy(next((entry for entry in self.file if entry['Name'] == sel_name), None))
+                    for i, e in enumerate(self.file):
+                        if e['Name'] == sel_name:
+                            self.id = i
+                            self.entry = copy.deepcopy(e)
+                            continue
 
             else:
                 self.entry = dict.fromkeys(['Name', 'Station', 'Land', 'Höhe', 'Lage'])
@@ -249,48 +243,53 @@ class ClimateApp:
             }
 
     def _edit_buttons(self, action):
-        name = self.entry.get('Name')
-        index = next((i for i, e in enumerate(self.file) if e['Name'] == self.entry['Name']), None)
+        original_name = self.file[self.id]['Name'] if self.id is not None else None
+        new_name = self.entry['Name']
+
+        def available(overwrite):
+            if new_name == None:
+                st.session_state.messages['error'].append('❌ Bitte geben Sie einen Dateinamen ein.')
+                return False
+            for i, d in enumerate(self.file):
+                if d['Name'] == new_name and (i != self.id or not overwrite):
+                    st.session_state.messages['error'].append(f'❌ Name **"{new_name}"** bereits vergeben.')
+                    return False
+            return True
 
         def save():
-            if index is not None:
-                self.file[index].update(self.entry)
-                st.session_state.messages['success'].append(f'✅ Datensatz **"{name}"** überschrieben.')
-            else:
+            if self.id is None:
                 st.session_state.messages['warning'].append('⚠️ "Speichern" überschreibt **ausgewählte** Datensätze. Für **neue** Einträge bitte "Speichern unter" wählen.')
-        
+            elif available(True): 
+                self.file[self.id].update(self.entry)
+                st.session_state.messages['success'].append(f'✅ Datensatz **"{original_name}"** überschrieben.')
+            
         def save_as():
-            if not name:
-                st.session_state.messages['error'].append('❌ Bitte geben Sie einen Dateinamen ein.')
-            elif any(d.get('Name') == name for d in self.file):
-                st.session_state.messages['error'].append(f'❌ Name **"{name}"** bereits vergeben.')
-            else:
+            if available(False):
                 self.file.append(self.entry)
-                st.session_state.messages['success'].append(f'✅ Datensatz **"{name}"** erstellt.')
+                st.session_state.messages['success'].append(f'✅ Datensatz **"{new_name}"** erstellt.')
+                self.id = len(self.file) - 1
                   
         def delete():
-            if index is not None:
-                match = next((d for d in self.file if d['Name'] == name), None)
-                if match:
-                    st.session_state.messages['success'].append(f'✅ Datensatz **"{name}"** gelöscht.')
-                    self.file.remove(match)
-                else:
-                    st.session_state.messages['error'].append(f'Dateiname **{name}** nicht gefunden.')
+            if self.id is not None:
+                self.file.pop(self.id)
+                st.session_state.messages['success'].append(f'✅ Datensatz **"{original_name}"** gelöscht.')
+                self.id = min(len(self.file) - 1, self.id)
             else:
                 st.session_state.messages['error'].append('"Löschen" entfernt **ausgewählte** Datensätze. **Ungespeicherte** Datensätze können nicht gelöscht werden.')
+        
         [save, save_as, delete][action]()
-        self._update_session(len(self.file), action == 2)
+        self._update_session()
     
-    def _update_session(self, index, delete=False):
+    def _update_session(self):
         st.session_state.file = self.file
         st.session_state.file_name = self.file_name
 
-        if  delete and not index:
+        if self.id is not None and self.id >= 0:
+            st.session_state.name = self.id
+            st.session_state.load = True
+        else:
             st.session_state.pop('name', None)
             st.session_state.pop('load', None)
-        else:
-            st.session_state.name = index - 1
-            st.session_state.load = True
 
         st.rerun()
 
