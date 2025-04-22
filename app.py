@@ -27,7 +27,7 @@ class ClimateApp:
         }
 
     def run(self):
-        st.title('Klimadaten-Visualisierer')
+        st.title('Klimadaten-Dashboard')
         self._select_source()
 
         if self.file_name:
