@@ -1,4 +1,4 @@
-# Climate Data Visualizer
+# Climate Data Dashboard
 This web application allows users to load, modify, and download climate data from JSON files. It provides a convenient way for users to interact with and visualize climate data, with functionality tailored to educational use.
 
 ## Features
